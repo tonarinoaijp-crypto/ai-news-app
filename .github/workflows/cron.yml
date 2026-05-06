@@ -21,3 +21,16 @@ jobs:
           fi
         env:
           APP_URL: ${{ secrets.APP_URL }}
+
+      - name: Broadcast to LINE
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$APP_URL/api/line-broadcast" \
+            -H "Content-Type: application/json")
+          echo "Response code: $response"
+          if [ "$response" != "200" ]; then
+            echo "Error: LINE broadcast returned $response"
+            exit 1
+          fi
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}

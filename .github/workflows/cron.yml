@@ -2,14 +2,22 @@ name: AI News Auto Collect
 
 on:
   schedule:
-    - cron: '0 19 * * 1,4'  # 日本時間 火・金 04:00
-  workflow_dispatch:  # 手動実行も可能にする
+    - cron: '0 19 * * 1,4'
+  workflow_dispatch:
 
 jobs:
   collect:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Trigger news collection
         run: |
-          curl -X POST ${{ secrets.APP_URL }}/api/collect \
-            -H "Content-Type: application/json"
+          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$APP_URL/api/collect" \
+            -H "Content-Type: application/json")
+          echo "Response code: $response"
+          if [ "$response" != "200" ]; then
+            echo "Error: API returned $response"
+            exit 1
+          fi
+        env:
+          APP_URL: ${{ secrets.APP_URL }}

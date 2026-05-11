@@ -13,6 +13,7 @@ export default function Home() {
   const [message, setMessage] = useState('')
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
   const [filter, setFilter] = useState<'all' | 'unposted' | 'posted'>('all')
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc')
   const [summary, setSummary] = useState<Summary | null>(null)
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false)
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
@@ -20,13 +21,13 @@ export default function Home() {
   const fetchArticles = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/articles')
+      const res = await fetch(`/api/articles?order=${sortOrder}`)
       const data = await res.json()
       setArticles(data)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [sortOrder])
 
   useEffect(() => {
     fetchArticles()
@@ -164,6 +165,28 @@ export default function Home() {
                 : `投稿済 (${articles.filter((a) => a.is_posted).length})`}
             </button>
           ))}
+          <div className="flex gap-1 ml-2">
+            <button
+              onClick={() => setSortOrder('desc')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                sortOrder === 'desc'
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-white text-gray-600 border hover:bg-gray-50'
+              }`}
+            >
+              新しい順
+            </button>
+            <button
+              onClick={() => setSortOrder('asc')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                sortOrder === 'asc'
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-white text-gray-600 border hover:bg-gray-50'
+              }`}
+            >
+              古い順
+            </button>
+          </div>
           <button
             onClick={handleGenerateSummary}
             disabled={isGeneratingSummary}

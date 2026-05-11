@@ -79,7 +79,17 @@ OpenAI・Anthropic・Google・Meta・Mistralなどの新モデル・AI規制・�
       }
     }
 
-    const newArticles = articles.filter((a) => a.url && !existingUrls.has(a.url))
+    const normalizeUrl = (url: string) => url.split('?')[0]
+
+    const seenUrls = new Set<string>()
+    const newArticles = articles
+      .filter((a) => a.url)
+      .map((a) => ({ ...a, url: normalizeUrl(a.url) }))
+      .filter((a) => {
+        if (existingUrls.has(a.url) || seenUrls.has(a.url)) return false
+        seenUrls.add(a.url)
+        return true
+      })
 
     if (newArticles.length === 0) {
       return NextResponse.json({ message: '新しい記事はありませんでした', count: 0 })
@@ -132,13 +142,24 @@ ${articlesText}
       collected_at: new Date().toISOString(),
     }))
 
-    // Step3: Supabaseに保存
-    const { error } = await supabase.from('news_articles').insert(articlesWithDrafts)
-    if (error) throw error
+    // Step3: Supabaseに保存（1件ずつupsert、URL重複はスキップ）
+    let savedCount = 0
+    for (const article of articlesWithDrafts) {
+      const { error, data } = await supabase
+        .from('news_articles')
+        .upsert(article, { onConflict: 'url', ignoreDuplicates: true })
+        .select()
+      if (error) {
+        console.error('Upsert error:', error, article.url)
+        continue
+      }
+      if (data && data.length > 0) savedCount++
+    }
 
     return NextResponse.json({
-      message: `${articlesWithDrafts.length}件の新しい記事を収集しました`,
-      count: articlesWithDrafts.length,
+      message: `${savedCount}件の新しい記事を収集しました`,
+      count: savedCount,
+      savedCount,
     })
   } catch (error) {
     console.error('Collect error:', error)

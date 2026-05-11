@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -6,11 +6,14 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const order = request.nextUrl.searchParams.get('order')
+  const ascending = order === 'asc'
+
   const { data, error } = await supabase
     .from('news_articles')
     .select('*')
-    .order('collected_at', { ascending: false })
+    .order('published_at', { ascending })
     .limit(50)
 
   if (error) {
